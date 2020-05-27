@@ -8,7 +8,7 @@ specification.
 
 --------------------------------------------------------------------------------
 
-## [Unreleased] 
+## [2.5.0] - 2020-05-25 
 
 ### Added
 
@@ -18,6 +18,10 @@ specification.
   [#27](https://github.com/mantisbt-plugins/GaugeSupport/issues/27)
 - Support for PostgreSQL (and probably MSSQL and Oracle as well)
   [#4](https://github.com/mantisbt-plugins/GaugeSupport/issues/4)
+- Russian translation
+  [#35](https://github.com/mantisbt-plugins/GaugeSupport/issues/35)
+- View Issue Page button to jump to the voting section 
+  [#34](https://github.com/mantisbt-plugins/GaugeSupport/issues/34)
 
 ### Changed
 
@@ -42,6 +46,8 @@ specification.
 - Renamed config options
   [#29](https://github.com/mantisbt-plugins/GaugeSupport/issues/29)
 - Miscellaneous code cleanup and layout improvements
+- Use Plugin API instead of hardcoded paths
+  [#32](https://github.com/mantisbt-plugins/GaugeSupport/issues/32)
 
 ### Fixed
 
@@ -61,6 +67,8 @@ specification.
   [#28](https://github.com/mantisbt-plugins/GaugeSupport/issues/28)
 - Missing license information
   [#31](https://github.com/mantisbt-plugins/GaugeSupport/issues/31)
+- Removed duplicate language string
+  [#33](https://github.com/mantisbt-plugins/GaugeSupport/issues/33)
 
 ### Security
 
@@ -120,8 +128,9 @@ specification.
 - Initial release by EvilRenegade
 
 
-[Unreleased]: https://github.com/mantisbt-plugins/GaugeSupport/compare/v2.04...HEAD
+[Unreleased]: https://github.com/mantisbt-plugins/GaugeSupport/compare/v2.5.0...HEAD
 
+[2.5.0]: https://github.com/mantisbt-plugins/GaugeSupport/compare/v2.04....v2.5.0
 [2.04]: https://github.com/mantisbt-plugins/GaugeSupport/compare/v2.03...v2.04
 [2.03]: https://github.com/mantisbt-plugins/GaugeSupport/compare/v2.02...v2.03
 [2.02]: https://github.com/mantisbt-plugins/GaugeSupport/commit/v2.02

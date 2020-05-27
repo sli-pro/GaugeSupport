@@ -26,7 +26,7 @@ class GaugeSupportPlugin extends MantisPlugin {
 		$this->name = plugin_lang_get( 'title' );
 		$this->description = plugin_lang_get( 'description' );
 		$this->page = 'config';
-		$this->version = '2.5.0-dev';
+		$this->version = '2.5.0';
 		$this->requires = array(
 			'MantisCore' => '2.0.0',
 			);
@@ -45,9 +45,12 @@ class GaugeSupportPlugin extends MantisPlugin {
 			);
 	} 
 	
-	function init() {
-		plugin_event_hook('EVENT_MENU_MAIN' , 'menuLinks');
-		plugin_event_hook('EVENT_VIEW_BUG_EXTRA', 'renderBugSnippet');
+	function hooks() {
+		return array(
+			'EVENT_MENU_MAIN' => 'menuLinks',
+			'EVENT_MENU_ISSUE' => 'issueVoteLink',
+			'EVENT_VIEW_BUG_EXTRA' => 'renderBugSnippet',
+		);
 	}
 
 	function menuLinks($p_event) {
@@ -59,6 +62,21 @@ class GaugeSupportPlugin extends MantisPlugin {
 				'icon' => 'fa-line-chart'
 			),
 		);
+	}
+
+	/**
+	 * Event hook to display the voting button on View Issue page if necessary.
+	 *
+	 * @param string $p_event  Event ID
+	 * @param int    $p_bug_id Bug ID
+	 *
+	 * @return array
+	 */
+	function issueVoteLink( $p_event, $p_bug_id ) {
+		if( $this->isVotingAllowed( $p_bug_id ) ) {
+			return array( plugin_lang_get( 'title' ) => '#rating' );
+		}
+		return array();
 	}
 
 	function renderBugSnippet($p_event, $bugid) {
@@ -155,5 +173,26 @@ class GaugeSupportPlugin extends MantisPlugin {
 		}
 		
 		return $t_data;
+	}
+
+	/**
+	 * Return true if voting is allowed for the given issue.
+	 *
+	 * @param int $p_bug_id
+	 *
+	 * @return bool
+	 */
+	public function isVotingAllowed( $p_bug_id ) {
+		foreach (array_keys($this->config()) as $t_config) {
+			$t_values = explode(',', plugin_config_get($t_config));
+			list($t_type, $t_field) = explode('_', $t_config);
+
+			$t_is_in_values = in_array(bug_get_field($p_bug_id, $t_field), $t_values);
+
+			if ($t_type == 'incl' xor $t_is_in_values) {
+				return false;
+			}
+		}
+		return true;
 	}
 }
