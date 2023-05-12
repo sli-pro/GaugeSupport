@@ -22,14 +22,29 @@
 
 class GaugeSupportPlugin extends MantisPlugin {
 
+	const VERSION = '2.6.0';
+
+	const MANTISGRAPH = 'MantisGraph';
+	const MANTISGRAPH_VERSION = '2.25.0';
+
+	/**
+	 * @var bool $mantisgraph_loaded True if MantisGraph plugin is available
+	 */
+	private $mantisgraph_loaded = false;
+	
 	function register() {
 		$this->name = plugin_lang_get( 'title' );
 		$this->description = plugin_lang_get( 'description' );
 		$this->page = 'config';
-		$this->version = '2.5.0';
+		$this->version = self::VERSION;
 		$this->requires = array(
 			'MantisCore' => '2.0.0',
 			);
+
+		# MantisGraph required so we don't need to bundle chart.js ourselves
+		$this->uses = array(
+			self::MANTISGRAPH => self::MANTISGRAPH_VERSION,
+		);
 
 		$this->author = "Cas (based upon Charly Kiendl's work), Damien Regad";
 		$this->contact = 'Cas@nuy.info';
@@ -47,13 +62,70 @@ class GaugeSupportPlugin extends MantisPlugin {
 	
 	function hooks() {
 		return array(
+			'EVENT_LAYOUT_RESOURCES' => 'resources',
 			'EVENT_MENU_MAIN' => 'menuLinks',
 			'EVENT_MENU_ISSUE' => 'issueVoteLink',
 			'EVENT_VIEW_BUG_EXTRA' => 'renderBugSnippet',
 		);
 	}
 
-	function menuLinks($p_event) {
+	/**
+	 * Initialize plugin
+	 *
+	 * Check soft dependency on MantisGraph plugin.
+	 */
+	public function init() {
+		if( plugin_is_registered( self::MANTISGRAPH ) ) {
+			$t_version_check = plugin_dependency(
+				self::MANTISGRAPH,
+				self::MANTISGRAPH_VERSION
+			);
+			$this->mantisgraph_loaded = $t_version_check == 1;
+		}
+		if( !$this->mantisgraph_loaded ) {
+			log_event( LOG_PLUGIN, $this->missingMantisGraph() );
+		}
+	}
+
+	/**
+	 * @return string
+	 */
+	public function missingMantisGraph() {
+		return sprintf(
+			plugin_lang_get( 'mantisgraph_missing' ),
+			self::MANTISGRAPH_VERSION
+		);
+	}
+
+	/**
+	 * Include javascript for chart.js if needed.
+	 *
+	 * Scripts are only loaded on pages that need them (currently, view.php).
+	 *
+	 * @return void
+	 */
+	function resources() {
+		$t_page = basename( $_SERVER['SCRIPT_FILENAME'] );
+		if( $this->mantisgraph_loaded && $t_page == 'view.php' ) {
+			$t_mantisgraph = plugin_get( self::MANTISGRAPH );
+			/** @var MantisGraphPlugin $t_mantisgraph */
+			$t_mantisgraph->include_chartjs();
+
+			echo "\t", '<script src="' . plugin_file( "GaugeSupport.js" ) . '"></script>', "\n";
+		}
+	}
+
+	/**
+	 * @return bool True if ChartJs library is available;
+	 */
+	public function isChartJsAvailable() {
+		return $this->mantisgraph_loaded;
+	}
+
+	/**
+	 * @noinspection PhpUnused PhpUnusedParameterInspection
+	 */
+	function menuLinks( $p_event ) {
 		return array(
 			array(
 				'title' => plugin_lang_get( 'menu_link' ),
@@ -71,6 +143,8 @@ class GaugeSupportPlugin extends MantisPlugin {
 	 * @param int    $p_bug_id Bug ID
 	 *
 	 * @return array
+	 *
+	 * @noinspection PhpUnused PhpUnusedParameterInspection
 	 */
 	function issueVoteLink( $p_event, $p_bug_id ) {
 		if( $this->isVotingAllowed( $p_bug_id ) ) {
@@ -79,12 +153,15 @@ class GaugeSupportPlugin extends MantisPlugin {
 		return array();
 	}
 
-	function renderBugSnippet($p_event, $bugid) {
+	/**
+	 * @noinspection PhpUnused PhpUnusedParameterInspection
+	 */
+	function renderBugSnippet( $p_event, $bugid ) {
 		include plugin_file_path( 'gauge_form.php', $this->basename );
 	}
-	
+
 	function schema() {
-		require_once( 'install.php' );
+		require_once( __DIR__ . '/install.php' );
 
 		return array(
 			0 => array( "CreateTableSQL",
@@ -135,9 +212,9 @@ class GaugeSupportPlugin extends MantisPlugin {
 			}
 		}
 
-		if( !empty( $t_where ) ) {
-			$t_where_clause = 'WHERE ' . implode( ' AND ', $t_where );
-		}
+		$t_where_clause = $t_where
+			? 'WHERE ' . implode( ' AND ', $t_where )
+			: '';
 
 		# Retrieve rankings from the database
 		$t_ratings_table = plugin_table( 'support_data' );
@@ -150,9 +227,9 @@ class GaugeSupportPlugin extends MantisPlugin {
 				avg(sd.rating) as avg_rating,
 				max(sd.rating) as highest_rating,
 				min(sd.rating) as lowest_rating
-			FROM {$t_ratings_table} sd
-			INNER JOIN {$t_bug_table} b ON sd.bugid = b.id
-			{$t_where_clause}
+			FROM $t_ratings_table sd
+			INNER JOIN $t_bug_table b ON sd.bugid = b.id
+			$t_where_clause
 			GROUP BY sd.bugid
 			ORDER BY sum(sd.rating) DESC, count(sd.rating) DESC, sd.bugid";
 		$t_result = db_query( $t_query, $t_param );
